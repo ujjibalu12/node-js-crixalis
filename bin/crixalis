@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+'use strict';
+
+var Crixalis = require('../lib'),
+	optimist = require('optimist'),
+	system   = require('os'),
+	resolve  = require('path').resolve,
+	argv     = optimist
+		.boolean(['help', 'version'])
+		.default('port', process.env.CRIXALIS_PORT || 8080)
+		.default('path', process.cwd())
+		.default('temp', system.tmpdir())
+		.usage([
+			'Usage:',
+			'    crixalis [--port <number>] [--path <path>] [--temp <path>]',
+			'    crixalis --version',
+			'    crixalis --help'
+		].join('\n'))
+		.describe({
+			port    : 'Use specified port',
+			temp    : 'Directory for temporary files',
+			path    : 'Serve static files from path',
+			help    : 'Show help and exit',
+			version : 'Show version and exit'
+		})
+		.argv;
+
+if (argv.help) {
+	optimist.showHelp();
+	process.exit();
+}
+
+if (argv.version) {
+	console.log(Crixalis.version);
+	process.exit();
+}
+
+Crixalis
+	.plugin('static', { route: true })
+	.plugin('access')
+	.plugin('compression');
+
+Crixalis.staticPath = resolve(process.cwd(), argv.path);
+Crixalis.cachePath  = resolve(process.cwd(), argv.temp);
+
+Crixalis
+	.route('*', { methods: ['GET', 'HEAD'] }, function () {
+		var path = resolve(this.staticPath + this.url + '/index.html');
+
+		if (path.indexOf(this.staticPath) === 0) {
+			this.serve(path, this.error.bind(this, 404));
+		} else {
+			this.error(404);
+		}
+	});
+
+Crixalis.start('http', argv.port);
+
+/* vim: set ft=javascript : */

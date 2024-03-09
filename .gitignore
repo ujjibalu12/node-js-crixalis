@@ -1,0 +1,7 @@
+doc
+node_modules
+t/lib/*.js
+t/*.js
+*.log
+*.swp
+tmp_*
